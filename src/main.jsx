@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { chapters, text } from './course.js'
+import ConcurrencyLesson from './lessons/ConcurrencyLesson.jsx'
 import './styles.css'
 
 const languageKey = 'dcs-visual-lab-language'
@@ -68,12 +69,14 @@ function Chapter({ chapter, headingRef, language, copy }) {
       <h1 ref={headingRef} tabIndex={-1}>{content.title}</h1>
       <p className="chapter-summary">{content.summary}</p>
 
-      <section className="chapter-topics" aria-labelledby="topic-list-title">
-        <h2 id="topic-list-title">{copy.topics}</h2>
-        <ul>
-          {content.topics.map(topic => <li key={topic}>{topic}</li>)}
-        </ul>
-      </section>
+      {chapter.id === 'concurrency' ? <ConcurrencyLesson language={language} /> : (
+        <section className="chapter-topics" aria-labelledby="topic-list-title">
+          <h2 id="topic-list-title">{copy.topics}</h2>
+          <ul>
+            {content.topics.map(topic => <li key={topic}>{topic}</li>)}
+          </ul>
+        </section>
+      )}
 
       <nav className="chapter-neighbors" aria-label={copy.chapterNavigation}>
         {previous && (
