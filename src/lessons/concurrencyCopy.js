@@ -2,12 +2,12 @@ const javaExample = '1  int value = counter;\n2  value = value + 1;\n3  counter 
 
 export const concurrencyCopy = {
   en: {
-    goalTitle: 'Learning goal',
-    goal: 'Explain how two threads can lose an update and identify which operations must share a lock.',
+    goal: 'Explain a lost update, protect a critical section, and trace how two threads pass work through a bounded queue.',
     theoryTitle: 'Why an update can disappear',
     theory: [
       'The threads share one counter, but each thread has its own local copy. An increment takes three operations: read the counter, add one to the local copy, then write the copy back. If both threads read the same value before either writes, both can write the same result.',
       'A lock makes read, increment, and write a critical section. A thread holds the lock across all three operations, so the next thread reads the updated counter.',
+      'A queue lets a producer hand items to a consumer. A bounded blocking queue makes a producer wait when the buffer is full and a consumer wait when it is empty. A FIFO queue retrieves the oldest item first.',
     ],
     simulator: {
       title: 'Shared counter simulator',
@@ -41,11 +41,20 @@ export const concurrencyCopy = {
       lostUpdate: 'One update was lost. Both threads incremented the same starting value and wrote the same result.',
       bothApplied: 'Both updates reached the counter. The second thread read the updated value.',
     },
-    practiceTitle: 'Try it yourself',
-    hint: 'Show hint',
-    check: 'Check answer',
-    correct: 'Correct.',
-    incorrect: 'Try again.',
+    queue: {
+      title: 'Producer–consumer queue',
+      instructions: 'Add items as the producer and remove them as the consumer. Try adding a fourth item to the three-slot queue or removing an item from an empty queue.',
+      enqueued: 'Items added', dequeued: 'Items removed', free: 'Free slots',
+      buffer: 'Queue · oldest first', empty: 'The queue is empty.', item: id => `Item ${id}`,
+      produce: 'Produce item', consume: 'Consume item', reset: 'Reset',
+      initial: 'Both threads can take turns operating on the queue.',
+      events: {
+        added: id => `The producer added item ${id} to the tail.`,
+        removed: id => `The consumer removed item ${id} from the head.`,
+        full: () => 'The queue is full. A producer would wait for a free slot.',
+        empty: () => 'The queue is empty. A consumer would wait for an item.',
+      },
+    },
     questions: [
       {
         id: 'predict-result',
@@ -69,12 +78,12 @@ export const concurrencyCopy = {
     ],
   },
   fi: {
-    goalTitle: 'Oppimistavoite',
-    goal: 'Selitä, miten päivitys voi kadota kahden säikeen suorituksessa ja mitkä operaatiot on suojattava samalla lukolla.',
+    goal: 'Selitä kadonnut päivitys, suojaa kriittinen osa ja seuraa, miten kaksi säiettä siirtää työtä rajatun jonon kautta.',
     theoryTitle: 'Miksi päivitys voi kadota',
     theory: [
       'Säikeet jakavat yhden laskurin, ja kummallakin on oma paikallinen kopionsa. Laskurin kasvattamisessa on kolme vaihetta: lue laskurin arvo, lisää paikalliseen kopioon yksi ja kirjoita kopion arvo takaisin. Jos molemmat säikeet lukevat saman arvon ennen ensimmäistä kirjoitusta, ne voivat kirjoittaa saman tuloksen.',
       'Lukko suojaa lukemisen, kasvattamisen ja kirjoittamisen yhtenä kriittisenä osana. Säie pitää lukon hallussaan kaikkien kolmen operaation ajan, joten seuraava säie lukee päivitetyn arvon.',
+      'Jonon kautta tuottaja antaa alkioita kuluttajalle. Rajatussa estävässä jonossa tuottaja odottaa, kun jono on täynnä, ja kuluttaja odottaa, kun se on tyhjä. FIFO-jonosta otetaan vanhin alkio ensin.',
     ],
     simulator: {
       title: 'Jaetun laskurin simulaattori',
@@ -108,11 +117,20 @@ export const concurrencyCopy = {
       lostUpdate: 'Yksi päivitys katosi. Molemmat säikeet kasvattivat samaa lähtöarvoa ja kirjoittivat saman tuloksen.',
       bothApplied: 'Molemmat päivitykset näkyvät laskurissa. Toinen säie luki päivitetyn arvon.',
     },
-    practiceTitle: 'Kokeile itse',
-    hint: 'Näytä vihje',
-    check: 'Tarkista vastaus',
-    correct: 'Oikein.',
-    incorrect: 'Kokeile uudelleen.',
+    queue: {
+      title: 'Tuottaja–kuluttaja-jono',
+      instructions: 'Lisää alkioita tuottajana ja poista niitä kuluttajana. Kokeile lisätä neljäs alkio kolmipaikkaiseen jonoon tai poistaa alkio tyhjästä jonosta.',
+      enqueued: 'Lisätyt alkiot', dequeued: 'Poistetut alkiot', free: 'Vapaat paikat',
+      buffer: 'Jono · vanhin ensin', empty: 'Jono on tyhjä.', item: id => `Alkio ${id}`,
+      produce: 'Tuota alkio', consume: 'Kuluta alkio', reset: 'Aloita alusta',
+      initial: 'Säikeet voivat käsitellä jonoa vuorotellen.',
+      events: {
+        added: id => `Tuottaja lisäsi alkion ${id} jonon loppuun.`,
+        removed: id => `Kuluttaja poisti alkion ${id} jonon alusta.`,
+        full: () => 'Jono on täynnä. Tuottaja odottaisi vapaata paikkaa.',
+        empty: () => 'Jono on tyhjä. Kuluttaja odottaisi alkiota.',
+      },
+    },
     questions: [
       {
         id: 'predict-result',

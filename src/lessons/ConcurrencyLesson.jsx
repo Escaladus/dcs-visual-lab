@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import Lesson from './Lesson.jsx'
 import { concurrencyCopy } from './concurrencyCopy.js'
+import { QueueLab } from './CourseLabs.jsx'
 import {
   advance,
   createSimulation,
@@ -153,11 +154,12 @@ function CounterSimulator({ copy }) {
   )
 }
 
-export default function ConcurrencyLesson({ language }) {
+export default function ConcurrencyLesson({ language, chapterNumber }) {
   const copy = concurrencyCopy[language]
   return (
-    <Lesson copy={copy}>
+    <Lesson copy={copy} language={language} chapterNumber={chapterNumber}>
       <CounterSimulator copy={copy.simulator} />
+      <QueueLab copy={copy.queue} />
     </Lesson>
   )
 }

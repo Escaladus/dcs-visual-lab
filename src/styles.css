@@ -380,20 +380,6 @@ h2 {
   text-underline-offset: 0.2em;
 }
 
-.chapter-topics {
-  margin-top: 2rem;
-  padding: 1.25rem 1.5rem;
-  border: 1px solid #cfe1d5;
-  border-radius: 0.65rem;
-  background: #eaf4ee;
-}
-
-.chapter-topics ul {
-  margin-bottom: 0;
-  padding-left: 1.25rem;
-  line-height: 1.65;
-}
-
 .chapter-neighbors {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
