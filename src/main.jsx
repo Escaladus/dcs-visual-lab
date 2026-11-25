@@ -1,6 +1,6 @@
 import { StrictMode, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { chapters, text } from './course.js'
+import { chapters, credits, text } from './course.js'
 import ConcurrencyLesson from './lessons/ConcurrencyLesson.jsx'
 import { courseLabs } from './lessons/CourseLabs.jsx'
 import { courseLessonCopy } from './lessons/courseLessonCopy.js'
@@ -98,6 +98,27 @@ function Chapter({ chapter, headingRef, language, copy }) {
         )}
       </nav>
     </article>
+  )
+}
+
+function SiteFooter({ copy }) {
+  const { siteAuthor, handoutAuthor, handoutTitle, courseCode, moodle } = credits
+
+  return (
+    <footer className="site-footer">
+      <div className="site-footer-inner">
+        <div>
+          <p>{copy.createdBy} <a href={siteAuthor.url}>{siteAuthor.name}</a>.</p>
+          <p>{copy.assistance}</p>
+        </div>
+        <div>
+          <p>{copy.handoutBy} <a href={handoutAuthor.url}>{handoutAuthor.name}</a>.</p>
+          <p><cite lang="en">{handoutTitle}</cite> ({courseCode})</p>
+          <p>{copy.publication}</p>
+          <p><a href={moodle}>{copy.materials}</a></p>
+        </div>
+      </div>
+    </footer>
   )
 }
 
@@ -216,6 +237,7 @@ function App() {
             : <CourseOverview headingRef={headingRef} language={language} copy={copy} />}
         </main>
       </div>
+      <SiteFooter copy={copy.credits} />
     </div>
   )
 }

@@ -1,4 +1,6 @@
 import { useId, useState } from 'react'
+import { ExtendedPractice, StudyNotes } from './StudyGuide.jsx'
+import { studyGuides } from './study/index.js'
 import './lesson.css'
 
 const lessonUi = {
@@ -6,11 +8,21 @@ const lessonUi = {
     goal: 'Learning goal', practice: 'Try it yourself', choose: 'Choose an answer',
     hint: 'Show hint', check: 'Check answer', correct: 'Correct.', incorrect: 'Try again.',
     source: number => `Course handout · Chapter ${number}`,
+    contents: 'In this chapter', notes: 'Study notes', labs: 'Simulators',
+    extended: 'Extended practice', example: 'Worked example', solution: 'Show a worked solution',
+    expand: 'Expand all', collapse: 'Collapse all',
+    handout: section => `Handout § ${section}`,
+    exerciseSource: reference => `Source · ${reference}`,
   },
   fi: {
     goal: 'Oppimistavoite', practice: 'Kokeile itse', choose: 'Valitse vastaus',
     hint: 'Näytä vihje', check: 'Tarkista vastaus', correct: 'Oikein.', incorrect: 'Kokeile uudelleen.',
     source: number => `Kurssin luentomoniste · Luku ${number}`,
+    contents: 'Tässä luvussa', notes: 'Opiskelumuistiinpanot', labs: 'Simulaattorit',
+    extended: 'Syventävät tehtävät', example: 'Ratkaistu esimerkki', solution: 'Näytä esimerkkiratkaisu',
+    expand: 'Avaa kaikki', collapse: 'Sulje kaikki',
+    handout: section => `Luentomoniste § ${section}`,
+    exerciseSource: reference => `Lähde · ${reference}`,
   },
 }
 
@@ -86,11 +98,34 @@ function PracticeQuestion({ question, copy }) {
 }
 
 export default function Lesson({ language, chapterNumber, copy, children }) {
-  const practiceId = useId()
+  const id = useId()
   const ui = lessonUi[language]
+  const guide = studyGuides[chapterNumber - 1]
+  const sections = {
+    notes: `${id}-notes`,
+    labs: `${id}-labs`,
+    practice: `${id}-practice`,
+    extended: `${id}-extended`,
+  }
 
   return (
     <>
+      <nav className="lesson-jumps" aria-label={ui.contents}>
+        {Object.entries(sections).map(([section, target]) => (
+          <button
+            type="button"
+            key={section}
+            aria-controls={target}
+            onClick={() => {
+              const section = document.getElementById(target)
+              section?.focus({ preventScroll: true })
+              section?.scrollIntoView({ block: 'start' })
+            }}
+          >
+            {ui[section]}
+          </button>
+        ))}
+      </nav>
       <section className="lesson-intro">
         <h2>{ui.goal}</h2>
         <p>{copy.goal}</p>
@@ -98,14 +133,17 @@ export default function Lesson({ language, chapterNumber, copy, children }) {
         {copy.theory.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
       </section>
 
-      {children}
+      <StudyNotes id={sections.notes} topics={guide.topics} language={language} copy={ui} />
 
-      <section className="lesson-practice" aria-labelledby={practiceId}>
-        <h2 id={practiceId}>{ui.practice}</h2>
+      <div id={sections.labs} tabIndex={-1} className="lesson-labs">{children}</div>
+
+      <section className="lesson-practice" aria-labelledby={sections.practice}>
+        <h2 id={sections.practice} tabIndex={-1}>{ui.practice}</h2>
         {copy.questions.map(question => (
           <PracticeQuestion key={question.id} question={question} copy={ui} />
         ))}
       </section>
+      <ExtendedPractice id={sections.extended} exercises={guide.exercises} language={language} copy={ui} />
       <p className="lesson-source">{ui.source(chapterNumber)}</p>
     </>
   )

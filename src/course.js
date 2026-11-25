@@ -1,7 +1,15 @@
+export const credits = {
+  siteAuthor: { name: 'Denis', url: 'https://github.com/Escaladus' },
+  handoutAuthor: { name: 'Simo Juvaste', url: 'https://uefconnect.uef.fi/en/simo.juvaste/' },
+  handoutTitle: 'Distributed and Concurrent Systems',
+  courseCode: '3621415',
+  moodle: 'https://moodle.uef.fi/',
+}
+
 export const text = {
   en: {
     overview: 'Course overview',
-    courseTitle: 'Distributed and Concurrent Systems',
+    courseTitle: credits.handoutTitle,
     introduction: 'Explore how threads share resources, how computers exchange messages, and how distributed systems keep working when parts fail.',
     start: 'Start with the basics',
     chapters: 'Course chapters',
@@ -11,6 +19,13 @@ export const text = {
     previous: 'Previous chapter',
     next: 'Next chapter',
     chapterNavigation: 'Adjacent chapters',
+    credits: {
+      createdBy: 'Site created by',
+      assistance: 'Developed with assistance from OpenAI Codex.',
+      handoutBy: 'Course handout by',
+      publication: 'University of Eastern Finland, School of Computing · Spring 2026',
+      materials: 'Course materials in UEF Moodle',
+    },
   },
   fi: {
     overview: 'Kurssin yleiskatsaus',
@@ -24,6 +39,13 @@ export const text = {
     previous: 'Edellinen luku',
     next: 'Seuraava luku',
     chapterNavigation: 'Edellinen ja seuraava luku',
+    credits: {
+      createdBy: 'Sivuston tekijä',
+      assistance: 'Toteutettu OpenAI Codexin avulla.',
+      handoutBy: 'Luentomonisteen tekijä',
+      publication: 'Itä-Suomen yliopisto, tietojenkäsittelytieteen laitos · Kevät 2026',
+      materials: 'Kurssimateriaalit UEF Moodlessa',
+    },
   },
 }
 

@@ -68,7 +68,8 @@ h1 {
 }
 
 .site-header-inner,
-.course-layout {
+.course-layout,
+.site-footer-inner {
   width: min(100% - 3rem, 80rem);
   margin-inline: auto;
 }
@@ -396,6 +397,30 @@ h2 {
   font-weight: 550;
 }
 
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: white;
+}
+
+.site-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding-block: 1.25rem;
+  color: var(--ink-muted);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.site-footer p + p {
+  margin-top: 0.25rem;
+}
+
+.site-footer a {
+  text-underline-offset: 0.15em;
+}
+
 @media (min-width: 75rem) {
   .intro-copy {
     max-width: calc(100% - 12rem);
@@ -408,7 +433,8 @@ h2 {
 
 @media (max-width: 52rem) {
   .site-header-inner,
-  .course-layout {
+  .course-layout,
+  .site-footer-inner {
     width: calc(100% - 2rem);
   }
 
