@@ -1,44 +1,12 @@
 import { useState } from 'react'
-import { Lab, LabMetrics, LabRange, LabSelect, LabSteps, StepControls, useLabSteps, useTraceSteps } from './Lab.jsx'
-import { commitDecision, createQueue, lockTrace, queueCapacity, queueStep, serviceCapacity, sortWorkload } from './courseModels.js'
+import { Lab, LabMetrics, LabSelect, LabSteps, StepControls, useLabSteps, useTraceSteps } from './Lab.jsx'
+import { createQueue, lockTrace, queueCapacity, queueStep } from './courseModels.js'
 import { httpRequest, httpResponse, meeting, meetingAccessStatus, meetingHttp, meetingTrace } from './meeting.js'
+import { CapacityScene, CommitScene, SortingScene } from './visuals/DistributedScenes.jsx'
 import { IoScene } from './visuals/ExecutionScenes.jsx'
 import { sceneCopy } from './visuals/executionCopy.js'
 import { TcpScene, TimingScene, TlsScene } from './visuals/NetworkScenes.jsx'
 import { Prediction, SceneNote, Timeline } from './visuals/Timeline.jsx'
-
-function SortingLab({ copy }) {
-  const [sheets, setSheets] = useState(24)
-  const [workers, setWorkers] = useState(3)
-  const [distribution, setDistribution] = useState('balanced')
-  const work = sortWorkload(sheets, workers, distribution)
-
-  return (
-    <Lab title={copy.title} instructions={copy.instructions}>
-      <div className="lab-settings">
-        <LabRange label={copy.sheets} min={12} max={48} value={sheets} onChange={setSheets} />
-        <LabRange label={copy.workers} min={1} max={6} value={workers} onChange={setWorkers} />
-        <LabSelect label={copy.distribution} value={distribution} options={copy.distributions} onChange={setDistribution} />
-      </div>
-      <ul className="work-stacks">
-        {work.stacks.map((count, index) => (
-          <li key={index}>
-            <span>{copy.worker(index + 1)}</span>
-            <meter min={0} max={sheets} value={count} aria-hidden="true" />
-            <strong>{copy.stack(count)}</strong>
-          </li>
-        ))}
-      </ul>
-      <LabMetrics live items={[
-        [copy.dispatch, `${work.dispatch} s`],
-        [copy.sorting, `${work.sorting} s`],
-        [copy.merge, `${work.merge} s`],
-        [copy.total, `${work.total} s`],
-      ]} />
-      <p className="lab-note">{copy.phases}</p>
-    </Lab>
-  )
-}
 
 export function QueueLab({ copy }) {
   const [queue, setQueue] = useState(createQueue)
@@ -68,32 +36,6 @@ export function QueueLab({ copy }) {
       <p className="lab-note" role="status">
         {queue.event ? copy.events[queue.event.kind](queue.event.item) : copy.initial}
       </p>
-    </Lab>
-  )
-}
-
-function CapacityLab({ copy }) {
-  const [load, setLoad] = useState(90)
-  const [replicas, setReplicas] = useState(3)
-  const [outage, setOutage] = useState('none')
-  const capacity = serviceCapacity(load, replicas, outage)
-
-  return (
-    <Lab title={copy.title} instructions={copy.instructions}>
-      <div className="lab-settings">
-        <LabRange label={copy.load} min={0} max={160} step={5} value={load} onChange={setLoad} format={copy.rate} />
-        <LabRange label={copy.replicas} min={1} max={5} value={replicas} onChange={setReplicas} />
-        <LabSelect label={copy.outage} value={outage} options={copy.outages} onChange={setOutage} />
-      </div>
-      <meter className="capacity-meter" min={0} max={Math.max(load, 1)} value={capacity.served} aria-hidden="true" />
-      <LabMetrics live items={[
-        [copy.active, capacity.activeReplicas],
-        [copy.served, copy.rate(capacity.served)],
-        [copy.waiting, copy.rate(capacity.waiting)],
-        [copy.capacity, copy.rate(capacity.capacity)],
-        [copy.limit, copy.limits[capacity.limit]],
-      ]} />
-      <p className="lab-note">{copy.assumptions}</p>
     </Lab>
   )
 }
@@ -241,9 +183,6 @@ function AlgorithmsLab({ language, copy }) {
   const navigation = useLabSteps()
   const frames = lockTrace(delay === 'delayed')
   const frame = frames[navigation.step - 1]
-  const [voteA, setVoteA] = useState('yes')
-  const [voteB, setVoteB] = useState('yes')
-  const decision = commitDecision([voteA, voteB])
 
   return (
     <>
@@ -270,20 +209,14 @@ function AlgorithmsLab({ language, copy }) {
           [copy.order, frame?.order.join(' → ') || copy.empty],
         ]} />
       </Lab>
-      <Lab title={copy.commitTitle} instructions={copy.commitInstructions}>
-        <div className="lab-settings">
-          <LabSelect label={copy.voter('A')} value={voteA} options={copy.votes} onChange={setVoteA} />
-          <LabSelect label={copy.voter('B')} value={voteB} options={copy.votes} onChange={setVoteB} />
-        </div>
-        <LabMetrics live items={[[copy.decision, copy.decisions[decision]]]} />
-      </Lab>
+      <CommitScene language={language} copy={copy} />
     </>
   )
 }
 
 export const courseLabs = {
-  introduction: SortingLab,
-  'design-principles': CapacityLab,
+  introduction: SortingScene,
+  'design-principles': CapacityScene,
   'logical-clocks': ({ language, copy }) => (
     <>
       <TimingScene language={language} />

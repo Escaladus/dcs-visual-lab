@@ -1,5 +1,7 @@
 .trace-diagram,
-.io-diagram {
+.io-diagram,
+.work-diagram,
+.service-diagram {
   min-width: 0;
   margin: 0;
   padding: clamp(0.65rem, 2.5vw, 1.1rem);
@@ -9,7 +11,9 @@
 }
 
 .trace-diagram figcaption,
-.io-diagram figcaption {
+.io-diagram figcaption,
+.work-diagram figcaption,
+.service-diagram figcaption {
   margin-bottom: 0.7rem;
   color: var(--green-dark);
   font-weight: 750;
@@ -273,6 +277,7 @@
 
 @media (max-width: 36rem) {
   .trace-actors { margin-left: 0; }
+  .trace-actor strong { font-size: 0.84rem; hyphens: auto; }
   .trace-event { grid-template-columns: 2.55rem minmax(0, 1fr); }
   .trace-lanes {
     display: flex;
@@ -308,4 +313,170 @@
   @keyframes trace-arrival {
     from { transform: translateY(2px); opacity: 0.72; }
   }
+}
+
+.work-diagram {
+  --work-label-width: 12rem;
+  --work-gap: 0.8rem;
+  container-type: inline-size;
+}
+
+.work-axis {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.25rem 0;
+  margin-inline-start: calc(var(--work-label-width) + var(--work-gap));
+  color: var(--ink-muted);
+  font: 0.78rem/1.4 ui-monospace, monospace;
+}
+
+.work-lane {
+  display: grid;
+  grid-template-columns: var(--work-label-width) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--work-gap);
+  padding-block: 0.55rem;
+  border-top: 1px solid #d9e7df;
+}
+
+.work-lane-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.6rem;
+  align-items: baseline;
+}
+
+.work-lane-label strong { font-size: 0.9rem; }
+
+.work-lane-label span,
+.service-node span {
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.work-track {
+  position: relative;
+  height: 1.5rem;
+  overflow: hidden;
+  border: 1px solid #dbe8e0;
+  border-radius: 0.3rem;
+  background: repeating-linear-gradient(to right, #fff 0 calc(25% - 1px), #e4ece7 calc(25% - 1px) 25%);
+}
+
+.work-track::after {
+  position: absolute;
+  inset-block: 0;
+  left: var(--elapsed);
+  width: 2px;
+  transform: translateX(-1px);
+  background: #193c2c;
+  content: "";
+}
+
+.work-interval {
+  --interval-edge: #8bad9d;
+  --interval-fill: #2b795c;
+  --interval-pending: #e4f0e8;
+  position: absolute;
+  inset-block: 0.2rem;
+  overflow: hidden;
+  border: 1px solid var(--interval-edge);
+  border-radius: 0.2rem;
+  background: var(--interval-pending);
+}
+
+.work-interval[data-kind="dispatch"] {
+  --interval-edge: #9aabc6;
+  --interval-fill: #4b6590;
+  --interval-pending: #e5eaf3;
+}
+
+.work-interval[data-kind="merge"] {
+  --interval-edge: #cfab64;
+  --interval-fill: #9c691b;
+  --interval-pending: #f6ebd1;
+}
+
+.work-interval > span {
+  display: block;
+  height: 100%;
+  background: var(--interval-fill);
+}
+
+.service-node {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.6rem 0.5rem;
+  border: 1px solid #a7c5b4;
+  border-radius: 0.45rem;
+  background: #fff;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.service-node[data-offline="true"] {
+  border: 1px dashed #b45b4f;
+  background: #fff1ee;
+}
+
+.service-node[data-offline="true"] span:first-of-type { color: #883c31; }
+
+.service-hub {
+  width: fit-content;
+  min-width: min(100%, 14rem);
+  margin-inline: auto;
+  padding-inline: 0.9rem;
+}
+
+.service-replicas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.25rem), 1fr));
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.4rem;
+  border-block: 1px solid #c1d7ca;
+  background: #eaf3ed;
+  list-style: none;
+}
+
+.service-node meter {
+  width: min(100%, 8rem);
+  height: 0.7rem;
+  margin-inline: auto;
+  appearance: none;
+}
+
+.service-node meter::-webkit-meter-bar {
+  border: 0;
+  border-radius: 0.3rem;
+  background: #e1ebe4;
+}
+
+.service-node meter::-webkit-meter-optimum-value {
+  border-radius: 0.3rem;
+  background: var(--green);
+}
+
+.service-arrow {
+  display: block;
+  padding: 0.16rem;
+  color: var(--green);
+  font-size: 1.2rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.service-arrow[data-stopped="true"] { color: #883c31; }
+
+@container (max-width: 26rem) {
+  .work-axis { margin-inline-start: 0; }
+  .work-lane { grid-template-columns: 1fr; gap: 0.35rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .work-track::after { transition: left 210ms ease-out; }
+  .work-interval > span { transition: width 210ms ease-out; }
 }

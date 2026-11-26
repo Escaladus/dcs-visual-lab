@@ -1,3 +1,5 @@
+export const sortingSecondsPerSheet = 3
+
 export function sortWorkload(sheets, workers, distribution) {
   const firstStack = distribution === 'skewed' && workers > 1 ? Math.ceil(sheets / 2) : 0
   const remainingWorkers = workers - Number(firstStack > 0)
@@ -8,7 +10,7 @@ export function sortWorkload(sheets, workers, distribution) {
   if (firstStack) stacks.unshift(firstStack)
 
   const dispatch = (workers - 1) * 2
-  const sorting = Math.max(...stacks) * 3
+  const sorting = Math.max(...stacks) * sortingSecondsPerSheet
   const merge = workers === 1 ? 0 : sheets
   return { stacks, dispatch, sorting, merge, total: dispatch + sorting + merge }
 }

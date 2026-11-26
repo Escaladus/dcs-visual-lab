@@ -388,42 +388,12 @@
   accent-color: var(--green);
 }
 
-.work-stacks,
 .queue-items {
   display: grid;
   gap: 0.42rem;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.work-stacks li {
-  display: grid;
-  grid-template-columns: minmax(0, 7rem) minmax(2rem, 1fr) auto;
-  align-items: center;
-  gap: 0.55rem;
-  color: var(--ink-muted);
-  font-size: 0.9375rem;
-}
-
-.work-stacks meter,
-.capacity-meter {
-  width: 100%;
-  height: 0.9rem;
-  appearance: none;
-}
-
-.work-stacks meter::-webkit-meter-bar,
-.capacity-meter::-webkit-meter-bar {
-  border: 0;
-  border-radius: 0.4rem;
-  background: #e1ebe4;
-}
-
-.work-stacks meter::-webkit-meter-optimum-value,
-.capacity-meter::-webkit-meter-optimum-value {
-  border-radius: 0.4rem;
-  background: var(--green);
 }
 
 .queue-view,

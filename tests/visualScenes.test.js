@@ -3,6 +3,8 @@ import test from 'node:test'
 import { counterPreset, currentFrame, threadStatus } from '../src/lessons/counterSimulation.js'
 import { meetingHttp, meetingTrace } from '../src/lessons/meeting.js'
 import { courseLessonCopy } from '../src/lessons/courseLessonCopy.js'
+import { replicaRate } from '../src/lessons/courseModels.js'
+import { commitTrace, serviceFlow, sortingTimeline } from '../src/lessons/visuals/distributedModels.js'
 import { ioSceneCopy, threadSceneCopy } from '../src/lessons/visuals/executionCopy.js'
 import { inputTick, ioTrace, javaThreadTrace } from '../src/lessons/visuals/executionModels.js'
 import { tcpCopy, timingCopy, tlsCopy } from '../src/lessons/visuals/networkCopy.js'
@@ -155,4 +157,70 @@ test('clock diagram pairs a dropped message with its send and leaves every clock
   assert.equal(frames[lost].message, sent.message)
   assert.deepEqual(frames[lost].clocks, sent.clocks)
   assert.ok(frames.every(frame => frame.kind !== 'receive' || frame.message !== sent.message))
+})
+
+test('sorting lanes share a start time and combining waits for the longest stack', () => {
+  const even = sortingTimeline(24, 3, 'balanced')
+  assert.deepEqual(even.sorters.map(sorter => [sorter.start, sorter.end]), [[4, 28], [4, 28], [4, 28]])
+  assert.deepEqual(even.milestones, [0, 4, 28, 52])
+
+  const uneven = sortingTimeline(24, 3, 'skewed')
+  assert.deepEqual(uneven.sorters.map(sorter => sorter.count), [12, 6, 6])
+  assert.deepEqual(uneven.milestones, [0, 4, 22, 40, 64])
+  assert.equal(uneven.combineAt, 40)
+
+  const single = sortingTimeline(24, 1, 'skewed')
+  assert.deepEqual(single.milestones, [0, 72])
+  assert.equal(single.combineAt, single.total)
+})
+
+test('service flow conserves traffic through both tiers for every supported setting', () => {
+  for (let load = 0; load <= 160; load += 5) {
+    for (let count = 1; count <= 5; count++) {
+      for (const outage of ['none', 'replica', 'database']) {
+        const flow = serviceFlow(load, count, outage)
+        assert.equal(flow.replicas.filter(replica => replica.online).length, flow.activeReplicas)
+        assert.equal(flow.replicas.reduce((sum, replica) => sum + replica.forwarded, 0), flow.forwarded)
+        assert.equal(flow.replicas.reduce((sum, replica) => sum + replica.served, 0), flow.served)
+        assert.equal(flow.served + flow.appExcess + flow.dbExcess, load)
+        for (const replica of flow.replicas) {
+          assert.ok(replica.served <= replica.forwarded && replica.forwarded <= replicaRate)
+          if (!replica.online) assert.equal(replica.forwarded, 0)
+        }
+      }
+    }
+  }
+
+  assert.deepEqual(serviceFlow(90, 3, 'replica').replicas.map(replica => replica.forwarded), [40, 40, 0])
+  const databaseDown = serviceFlow(90, 3, 'database')
+  assert.equal(databaseDown.forwarded, 90)
+  assert.equal(databaseDown.served, 0)
+  assert.equal(databaseDown.dbExcess, 90)
+})
+
+test('two-phase commit records one decision before delivery and delay leaves a yes voter prepared', () => {
+  for (const votes of [['yes', 'yes'], ['yes', 'no'], ['no', 'yes'], ['no', 'no']]) {
+    for (const delayed of [false, true]) {
+      const { initial, frames } = commitTrace(votes, delayed)
+      const decision = votes.includes('no') ? 'abort' : 'commit'
+      const outcome = decision === 'commit' ? 'committed' : 'aborted'
+      assert.equal(initial.decision, null)
+      assert.ok(frames.slice(0, 4).every(frame => frame.state.decision === null))
+      assert.deepEqual(frames.slice(0, 4).map(frame => frame.kind), ['prepare', 'prepare', ...votes])
+      assert.equal(frames[4].kind, 'decide')
+      assert.equal(frames[4].state.decision, decision)
+      const deliveries = frames.filter(frame => frame.kind === 'deliver')
+      assert.deepEqual(deliveries.map(frame => frame.to), ['A', 'B'])
+      assert.ok(deliveries.every(frame => frame.state[frame.to] === outcome))
+      assert.equal(frames.at(-1).state.coordinator, 'complete')
+      assert.equal(frames.at(-1).state.A, outcome)
+      assert.equal(frames.at(-1).state.B, outcome)
+      const pending = frames.find(frame => frame.kind === 'delay')
+      assert.equal(Boolean(pending), delayed)
+      if (pending) {
+        assert.equal(pending.state.A, outcome)
+        assert.equal(pending.state.B, votes[1] === 'yes' ? 'prepared' : 'aborted')
+      }
+    }
+  }
 })
