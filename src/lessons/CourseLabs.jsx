@@ -1,7 +1,11 @@
 import { useState } from 'react'
-import { Lab, LabMetrics, LabRange, LabSelect, LabSteps, useLabSteps } from './Lab.jsx'
+import { Lab, LabMetrics, LabRange, LabSelect, LabSteps, StepControls, useLabSteps, useTraceSteps } from './Lab.jsx'
 import { commitDecision, createQueue, lockTrace, queueCapacity, queueStep, serviceCapacity, sortWorkload } from './courseModels.js'
-import { httpRequest, httpResponse, meeting, meetingHttp, meetingTrace } from './meeting.js'
+import { httpRequest, httpResponse, meeting, meetingAccessStatus, meetingHttp, meetingTrace } from './meeting.js'
+import { IoScene } from './visuals/ExecutionScenes.jsx'
+import { sceneCopy } from './visuals/executionCopy.js'
+import { TcpScene, TimingScene, TlsScene } from './visuals/NetworkScenes.jsx'
+import { Prediction, SceneNote, Timeline } from './visuals/Timeline.jsx'
 
 function SortingLab({ copy }) {
   const [sheets, setSheets] = useState(24)
@@ -97,13 +101,16 @@ function CapacityLab({ copy }) {
 function MeetingLab({ language, copy }) {
   const [architecture, setArchitecture] = useState('server')
   const [delivery, setDelivery] = useState('normal')
-  const navigation = useLabSteps()
+  const ui = sceneCopy[language]
   const { actors, initial, frames } = meetingTrace(architecture, delivery === 'loss')
+  const navigation = useTraceSteps(frames.length)
   const event = frames[navigation.step - 1]
   const clocks = event?.clocks ?? initial
+  const previousClocks = frames[navigation.step - 2]?.clocks ?? initial
+  const firstInvitation = frames.findIndex(frame => frame.kind === 'receive' && (frame.label === 'invite' || frame.label === 'retry'))
+  const invitationClock = frames[firstInvitation].clocks.Leo.lamport
   const name = actor => actor === 'Service' ? copy.service : actor
   const sender = event?.kind === 'receive' ? event.peer : event?.actor
-  const receiver = event?.kind === 'receive' ? event.actor : event?.peer
   let description = copy.initial
   if (event?.kind === 'drop') description = copy.dropped
   else if (event?.label === 'availability') description = copy.availability(meeting.availability[sender])
@@ -131,36 +138,39 @@ function MeetingLab({ language, copy }) {
           }}
         />
       </div>
-      <div className="lab-event" aria-live="polite">
-        {event ? (
-          <>
-            <strong>{copy.kinds[event.kind]}</strong>
-            <dl className="lab-flow">
-              {receiver ? (
-                <>
-                  <div><dt>{copy.from}</dt><dd>{name(sender)}</dd></div>
-                  <div><dt>{copy.to}</dt><dd>{name(receiver)}</dd></div>
-                </>
-              ) : <div><dt>{copy.process}</dt><dd>{name(event.actor)}</dd></div>}
-            </dl>
-            <p>{description}</p>
-          </>
-        ) : <p>{description}</p>}
-      </div>
-      <LabSteps navigation={navigation} total={frames.length} language={language} />
+      <Prediction key={`${architecture}-${delivery}`} language={language} question={copy.predict}
+        options={{ 3: '3', 5: '5', 7: '7' }} answer={invitationClock} revealed={navigation.step > firstInvitation}
+        explanation={copy.predictionResult(invitationClock)} />
+      <StepControls {...navigation} language={language} />
+      <SceneNote tone={event?.kind === 'drop' ? 'lost' : undefined}>
+        {event && <strong>{copy.kinds[event.kind]} · </strong>}{description}
+      </SceneNote>
       <table className="clock-table">
         <caption>{copy.vectorOrder}</caption>
         <thead><tr><th scope="col">{copy.process}</th><th scope="col">{copy.lamport}</th><th scope="col">{copy.vector}</th></tr></thead>
         <tbody>
-          {actors.map(actor => (
-            <tr key={actor} className={event?.kind !== 'drop' && event?.actor === actor ? 'clock-active' : undefined}>
-              <th scope="row">{name(actor)}</th>
-              <td>{clocks[actor].lamport}</td>
-              <td><code>[{clocks[actor].vector.join(', ')}]</code></td>
-            </tr>
-          ))}
+          {actors.map(actor => {
+            const active = event?.kind !== 'drop' && event?.actor === actor
+            return (
+              <tr key={actor} className={active ? 'clock-active' : undefined}>
+                <th scope="row">{name(actor)}</th>
+                <td>{active && <span className="clock-before">{previousClocks[actor].lamport} → </span>}{clocks[actor].lamport}</td>
+                <td><code>{active && <span className="clock-before">[{previousClocks[actor].vector.join(', ')}] → </span>}[{clocks[actor].vector.join(', ')}]</code></td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
+      <Timeline label={ui.eventOrder} formatPosition={ui.step}
+        actors={actors.map(actor => ({ id: actor, label: name(actor) }))}
+        events={frames.slice(0, navigation.step).map(({ actor, kind, label, message, peer }) => {
+          const route = kind === 'send' || kind === 'drop' ? { from: actor, to: peer } : { actor }
+          return {
+            ...route,
+            tone: kind === 'drop' ? 'lost' : undefined,
+            label: message ? `${copy.kinds[kind]} · m${message}` : copy.eventLabels[label],
+          }
+        })} />
       <a className="lab-link" href="#communication">{copy.link}</a>
     </Lab>
   )
@@ -208,7 +218,7 @@ function SecurityLab({ copy }) {
   const [caller, setCaller] = useState('member')
   const permitted = caller === 'member'
   const visibility = protocol === 'https' ? copy.encrypted : permitted ? copy.visibleTime : copy.visibleDenial
-  const status = permitted ? meetingHttp.result.status : '403 Forbidden'
+  const status = meetingAccessStatus(permitted)
 
   return (
     <Lab title={copy.title} instructions={copy.instructions}>
@@ -274,8 +284,24 @@ function AlgorithmsLab({ language, copy }) {
 export const courseLabs = {
   introduction: SortingLab,
   'design-principles': CapacityLab,
-  'logical-clocks': MeetingLab,
-  communication: CommunicationLab,
-  security: SecurityLab,
+  'logical-clocks': ({ language, copy }) => (
+    <>
+      <TimingScene language={language} />
+      <MeetingLab language={language} copy={copy} />
+    </>
+  ),
+  communication: ({ language, copy }) => (
+    <>
+      <IoScene language={language} />
+      <TcpScene language={language} />
+      <CommunicationLab language={language} copy={copy} />
+    </>
+  ),
+  security: ({ language, copy }) => (
+    <>
+      <TlsScene language={language} />
+      <SecurityLab copy={copy} />
+    </>
+  ),
   'distributed-algorithms': AlgorithmsLab,
 }

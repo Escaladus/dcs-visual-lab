@@ -35,6 +35,10 @@ export const meetingHttp = {
   },
 }
 
+export function meetingAccessStatus(isMember) {
+  return isMember ? meetingHttp.result.status : '403 Forbidden'
+}
+
 function httpMessage(lines, body) {
   if (body) {
     const json = JSON.stringify(body)
@@ -68,7 +72,7 @@ export function meetingTrace(architecture, loseInvite) {
     const message = ++nextMessage
     events.push({ kind: 'send', actor: from, peer: to, label, message })
     events.push(drop
-      ? { kind: 'drop', actor: from, peer: to, label }
+      ? { kind: 'drop', actor: from, peer: to, label, message }
       : { kind: 'receive', actor: to, peer: from, label, message })
   }
 

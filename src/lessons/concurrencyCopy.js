@@ -11,7 +11,6 @@ export const concurrencyCopy = {
     ],
     simulator: {
       title: 'Shared counter simulator',
-      instructions: 'Both threads add one. Try alternating A and B without a lock, then switch on the lock and compare the result. Switching modes starts a new run.',
       mode: 'Lock mode',
       modes: { unlocked: 'Without a lock', locked: 'With a lock' },
       counter: 'Shared counter',
@@ -25,10 +24,6 @@ export const concurrencyCopy = {
       nextOperation: operation => `Next: ${operation}`,
       blocked: id => `Waiting for thread ${id} to release the lock`,
       operations: { acquire: 'Acquire lock', read: 'Read', increment: 'Increment', write: 'Write', release: 'Release lock' },
-      progress: (step, total) => `${step} of ${total} steps`,
-      previous: 'Back one step',
-      next: 'Next step',
-      reset: 'Reset',
       log: 'Event log',
       emptyLog: 'The event log will show each operation as you run it.',
       events: {
@@ -87,7 +82,6 @@ export const concurrencyCopy = {
     ],
     simulator: {
       title: 'Jaetun laskurin simulaattori',
-      instructions: 'Kumpikin säie lisää laskuriin yhden. Kokeile ensin vuorotella säikeitä A ja B ilman lukkoa. Ota sitten lukko käyttöön ja vertaa tuloksia. Tilan vaihtaminen aloittaa suorituksen alusta.',
       mode: 'Lukituksen tila',
       modes: { unlocked: 'Ilman lukkoa', locked: 'Lukon kanssa' },
       counter: 'Jaettu laskuri',
@@ -101,10 +95,6 @@ export const concurrencyCopy = {
       nextOperation: operation => `Seuraava: ${operation}`,
       blocked: id => `Odottaa, että säie ${id} vapauttaa lukon`,
       operations: { acquire: 'Ota lukko', read: 'Lue', increment: 'Kasvata', write: 'Kirjoita', release: 'Vapauta lukko' },
-      progress: (step, total) => `${step}/${total} askelta`,
-      previous: 'Edellinen askel',
-      next: 'Seuraava askel',
-      reset: 'Aloita alusta',
       log: 'Tapahtumaloki',
       emptyLog: 'Tapahtumaloki näyttää operaatiot sitä mukaa, kun suoritat niitä.',
       events: {

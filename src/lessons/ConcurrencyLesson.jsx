@@ -1,9 +1,14 @@
-import { useId, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import Lesson from './Lesson.jsx'
+import { Lab, LabMetrics, LabSelect, StepControls, useTraceSteps } from './Lab.jsx'
 import { concurrencyCopy } from './concurrencyCopy.js'
 import { QueueLab } from './CourseLabs.jsx'
+import { JavaThreadScene } from './visuals/ExecutionScenes.jsx'
+import { counterSceneCopy, sceneCopy } from './visuals/executionCopy.js'
+import { Prediction, SceneNote, Timeline } from './visuals/Timeline.jsx'
 import {
   advance,
+  counterPreset,
   createSimulation,
   currentFrame,
   rewind,
@@ -52,24 +57,36 @@ function ThreadCard({ thread, selected, lockOwner, group, copy, onSelect }) {
   )
 }
 
-function CounterSimulator({ copy }) {
+function CounterSimulator({ copy, language }) {
   const id = useId()
-  const [simulation, setSimulation] = useState(createSimulation)
+  const visual = counterSceneCopy[language]
+  const ui = sceneCopy[language]
+  const [scenario, setScenario] = useState('race')
+  const [manualSimulation, setManualSimulation] = useState(createSimulation)
+  const manual = scenario === 'manual'
+  const preset = useMemo(() => manual ? [] : counterPreset(scenario), [manual, scenario])
+  const navigation = useTraceSteps(Math.max(0, preset.length - 1))
+  const simulation = manual ? manualSimulation : preset[navigation.step]
   const frame = currentFrame(simulation)
   const threads = threadIds.map(id => ({ id, ...threadStatus(simulation, id) }))
   const step = simulation.history.length - 1
   const total = threads.reduce((sum, thread) => sum + thread.operations.length, 0)
   const finished = simulation.selectedThread === null
   const result = frame.counter === threadIds.length ? copy.bothApplied : copy.lostUpdate
+  const description = frame.event ? copy.events[frame.event.operation](frame.event) : visual.ready
+  const events = simulation.history.slice(1).map(({ event }) => ({
+    actor: event.thread,
+    label: copy.operations[event.operation],
+  }))
 
   return (
-    <section className="counter-lab" aria-labelledby={`${id}-title`}>
-      <header className="counter-lab-header">
-        <h2 id={`${id}-title`}>{copy.title}</h2>
-        <p>{copy.instructions}</p>
-      </header>
-
-      <div className="counter-lab-body">
+    <Lab title={copy.title} instructions={visual.instructions}>
+      <LabSelect label={visual.scenario} options={visual.scenarios} value={scenario} onChange={value => {
+        setScenario(value)
+        setManualSimulation(createSimulation())
+        navigation.reset()
+      }} />
+      {manual && (
         <fieldset className="lock-options">
           <legend>{copy.mode}</legend>
           <div className="lock-choices">
@@ -79,27 +96,21 @@ function CounterSimulator({ copy }) {
                   type="radio"
                   name={`${id}-mode`}
                   checked={simulation.mode === mode}
-                  onChange={() => setSimulation(createSimulation(mode))}
+                  onChange={() => setManualSimulation(createSimulation(mode))}
                 />
                 <span>{label}</span>
               </label>
             ))}
           </div>
         </fieldset>
-
-        <dl className="counter-metrics">
-          <div>
-            <dt>{copy.counter}</dt>
-            <dd>{frame.counter}</dd>
-          </div>
-          {simulation.mode === 'locked' && (
-            <div>
-              <dt>{copy.lock}</dt>
-              <dd>{frame.lockOwner ? copy.thread(frame.lockOwner) : copy.free}</dd>
-            </div>
-          )}
-        </dl>
-
+      )}
+      <Prediction key={`${scenario}-${simulation.mode}`} language={language} question={visual.predict}
+        options={{ 0: '0', 1: '1', 2: '2' }} answer={frame.counter} revealed={finished} explanation={result} />
+      <LabMetrics items={[
+        [copy.counter, frame.counter],
+        ...(simulation.mode === 'locked' ? [[copy.lock, frame.lockOwner ? copy.thread(frame.lockOwner) : copy.free]] : []),
+      ]} />
+      {manual && (
         <fieldset className="thread-schedule">
           <legend>{copy.schedule}</legend>
           <div className="thread-cards">
@@ -111,46 +122,38 @@ function CounterSimulator({ copy }) {
                 lockOwner={frame.lockOwner}
                 group={`${id}-thread`}
                 copy={copy}
-                onSelect={threadId => setSimulation(state => selectThread(state, threadId))}
+                onSelect={threadId => setManualSimulation(state => selectThread(state, threadId))}
               />
             ))}
           </div>
         </fieldset>
-
-        <div className="lab-controls">
-          <button className="lab-button" type="button" disabled={step === 0} onClick={() => setSimulation(rewind)}>
-            {copy.previous}
-          </button>
-          <button className="lab-button lab-primary" type="button" disabled={finished} onClick={() => setSimulation(advance)}>
-            {copy.next}
-          </button>
-          <button className="lab-button" type="button" onClick={() => setSimulation(state => createSimulation(state.mode))}>
-            {copy.reset}
-          </button>
-          <span className="lab-progress">{copy.progress(step, total)}</span>
-        </div>
-
-        <div role="status" className={finished ? undefined : 'lab-visually-hidden'}>
-          <span className="lab-visually-hidden">
-            {copy.progress(step, total)}. {frame.event ? copy.events[frame.event.operation](frame.event) : ''}
-          </span>
-          {finished && <p className="counter-result" data-lost={frame.counter < threadIds.length}>{result}</p>}
-        </div>
-
-        <section className="event-log" aria-labelledby={`${id}-log`}>
-          <h3 id={`${id}-log`}>{copy.log}</h3>
-          {step === 0
-            ? <p>{copy.emptyLog}</p>
-            : (
-              <ol>
-                {simulation.history.slice(1).map(({ event }) => (
-                  <li key={`${event.thread}-${event.operation}`}>{copy.events[event.operation](event)}</li>
-                ))}
-              </ol>
-            )}
-        </section>
-      </div>
-    </section>
+      )}
+      {manual
+        ? <StepControls step={step} total={total} language={language}
+            back={() => setManualSimulation(rewind)} next={() => setManualSimulation(advance)}
+            reset={() => setManualSimulation(state => createSimulation(state.mode))} />
+        : <StepControls {...navigation} language={language} />}
+      <SceneNote tone={finished && frame.counter < threadIds.length ? 'lost' : undefined}>
+        {description} {finished && result}
+      </SceneNote>
+      <Timeline label={visual.diagram} formatPosition={ui.step} events={events}
+        actors={threads.map(thread => {
+          const local = `${copy.local} · ${thread.value ?? copy.noValue}`
+          const status = thread.blocked ? copy.blocked(frame.lockOwner) : thread.nextOperation ? '' : copy.finished
+          return { id: thread.id, label: copy.thread(thread.id), state: [local, status].filter(Boolean).join(' · '),
+            tone: thread.blocked ? 'wait' : undefined }
+        })} />
+      <details className="event-log">
+        <summary>{copy.log}</summary>
+        {step === 0 ? <p>{copy.emptyLog}</p> : (
+          <ol>
+            {simulation.history.slice(1).map(({ event }) => (
+              <li key={`${event.thread}-${event.operation}`}>{copy.events[event.operation](event)}</li>
+            ))}
+          </ol>
+        )}
+      </details>
+    </Lab>
   )
 }
 
@@ -158,7 +161,8 @@ export default function ConcurrencyLesson({ language, chapterNumber }) {
   const copy = concurrencyCopy[language]
   return (
     <Lesson copy={copy} language={language} chapterNumber={chapterNumber}>
-      <CounterSimulator copy={copy.simulator} />
+      <CounterSimulator copy={copy.simulator} language={language} />
+      <JavaThreadScene language={language} />
       <QueueLab copy={copy.queue} />
     </Lesson>
   )

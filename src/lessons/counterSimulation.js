@@ -98,3 +98,17 @@ export function rewind(simulation) {
     history: simulation.history.slice(0, -1),
   }
 }
+
+export function counterPreset(scenario) {
+  const locked = scenario === 'locked'
+  const schedule = scenario === 'sequential'
+    ? ['A', 'A', 'A', 'B', 'B', 'B']
+    : scenario === 'race' ? ['A', 'B', 'A', 'B', 'A', 'B'] : []
+  const states = [createSimulation(locked ? 'locked' : 'unlocked')]
+  while (states.at(-1).selectedThread !== null) {
+    const current = states.at(-1)
+    const next = schedule.at(states.length - 1)
+    states.push(advance(next ? selectThread(current, next) : current))
+  }
+  return states
+}
